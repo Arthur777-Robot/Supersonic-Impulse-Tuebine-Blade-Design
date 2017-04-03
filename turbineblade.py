@@ -33,26 +33,21 @@ class Blade():
 		return fai
 
 	def chara_x(self,Rstar,theta):
-		
 		return Rstar*math.sin(theta) 
 
 	def chara_y(self,Rstar,theta):
-		
 		return Rstar*math.cos(theta) 
 
 	def plot_chara(self,angle,step):
 
-		xa = []
-		ya = []
-		xb = []
-		yb = []
-		x1 = []
-		y1 = []
-		x2 = []
-		y2 = []
+		x1,y1,x2,y2 = [],[],[],[]
 
 		counter = 1000
 		for j in range(0,angle,step):
+			del x1[:]
+			del y1[:]
+			del x2[:]
+			del y2[:]
 			for i in range(counter):
 				Rstar = self.Rstar_min + i *1/counter 
 				if Rstar > 1: 
@@ -67,12 +62,6 @@ class Blade():
 
 			plt.plot(x1,y1)
 			plt.plot(x2,y2)
-	
-#		xa.append(x1)
-#		ya.append(ya)
-#		xb.append(x2)
-#		yb.append(yb)
-
 		plt.show()
 
 	def get_R(self,org,nyu):
@@ -112,7 +101,6 @@ class Blade():
 		param.append(x0)
 		param.append(y0)
 		param.append(myu_check)
-#		print(param)
 		return param
 
 	def get_myu(self,M):
@@ -216,6 +204,6 @@ if __name__ == "__main__":
 	f = Blade(1.4)
 	print("lower_concave")
 
-	f.new_concave(1)
-#	f.plot_chara(360,10)
+#	f.new_concave(1)
+	f.plot_chara(360,10)
 	print("finish")
