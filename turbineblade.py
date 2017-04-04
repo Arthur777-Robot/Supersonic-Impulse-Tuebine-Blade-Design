@@ -164,7 +164,7 @@ class Blade():
 	def new_concave(self,fai):
 		
 		v1 = 0
-		ve = 38
+		ve = 29
 
 		fai = math.radians(fai)
 
@@ -181,7 +181,7 @@ class Blade():
 			Xstar_b = xtmp
 			Ystar_b = ytmp
 			
-			Rstar,Xstar_a,Ystar_a,myu_check = self.get_R(v1,num/2)
+			Rstar,Xstar_a,Ystar_a,myu_check = self.get_R(v1,num)
 			myu = self.get_myu(self.get_mach(self.get_Mstar(Rstar)))
 			a1 = math.tan(myu_check)
 			b1 = Ystar_a - a1 * Xstar_a
