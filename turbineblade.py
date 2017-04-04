@@ -44,10 +44,7 @@ class Blade():
 
 		counter = 1000
 		for j in range(0,angle,step):
-			del x1[:]
-			del y1[:]
-			del x2[:]
-			del y2[:]
+			del x1[:],y1[:],x2[:],y2[:]
 			for i in range(counter):
 				Rstar = self.Rstar_min + i *1/counter 
 				if Rstar > 1: 
@@ -60,8 +57,8 @@ class Blade():
 
 				if Rstar == 1: break
 
-			plt.plot(x1,y1)
-			plt.plot(x2,y2)
+			plt.plot(x1,y1,"r")
+			plt.plot(x2,y2,"k")
 		plt.show()
 
 	def get_R(self,org,nyu):
@@ -171,32 +168,51 @@ class Blade():
 
 		fai = math.radians(fai)
 
-		Xstar_b = 0		#initial Xstar_b = 0
-		Ystar_b = 1		#initial Ystar_b = 1
+		xtmp = 0		#initial Xstar_b = 0
+		ytmp = 1		#initial Ystar_b = 1
 
 		x,y = [],[]
+		Xstar,Ystar = [],[]
+		R_x,R_y = [],[]
 
 		#v1 is the origin angle. ve is the end angle
 		for num in range(v1 + 1,ve):	
+
+			Xstar_b = xtmp
+			Ystar_b = ytmp
 			
 			Rstar,Xstar_a,Ystar_a,myu_check = self.get_R(v1,num/2)
 			myu = self.get_myu(self.get_mach(self.get_Mstar(Rstar)))
 			a1 = math.tan(myu_check)
 			b1 = Ystar_a - a1 * Xstar_a
-			a2 = math.tan(fai)
+			a2 = math.tan(math.radians(num))
 			b2 = Ystar_b - a2 * Xstar_b
-	
+
+#			print(Ystar_a,a1*Xstar_a)
+#			print(a1,b1,a2,b2,math.degrees(myu_check))
+#			print(Xstar_a,Ystar_a)
+
 #			print(Ystar_a)
 #			print(math.degrees(math.atan(a1)),b1,math.degrees(math.atan(a2)),b2)
 
 			xtmp = ((b2 - b1) / (a1 - a2))
-			ytmp = xtmp * a2 + b1
+			ytmp = xtmp * a2 + b2
 
+#			print(Xstar_a,Ystar_a,math.degrees(myu_check))
+			print(xtmp,ytmp)
 			x += [float(xtmp)]
 			y += [float(ytmp)]
+			Xstar += [(Xstar_a)]
+			Ystar += [(Ystar_a)]
+			R_x += [-math.sin(math.radians(num))]
+			R_y += [math.cos(math.radians(num))]
 
-		print(x,y)
 		plt.plot(x,y)
+		plt.plot(Xstar,Ystar)
+		plt.plot(R_x,R_y)
+		plt.xlim(-1,0)
+		plt.ylim(0,1)
+		plt.gca().set_aspect('equal', adjustable='box')
 		plt.show()
 
 if __name__ == "__main__":
@@ -204,6 +220,6 @@ if __name__ == "__main__":
 	f = Blade(1.4)
 	print("lower_concave")
 
-#	f.new_concave(1)
-	f.plot_chara(360,10)
+	f.new_concave(1)
+#	f.plot_chara(360,5)
 	print("finish")
