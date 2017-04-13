@@ -163,6 +163,20 @@ class Blade():
 	def get_Ru(self,vu):
 		return self.get_R(-vu,vu)[0]
 
+	#In the papaer, theta are defines around 90-120deg
+	def get_arc(self,Rstar,theta_in,theta_out,v1,v2):
+		
+		x,y = [],[]
+
+		theta = np.arange(-(theta_in-v1+v2),(theta_out-v1+v2),0.1)
+		x = list(map(lambda theta: Rstar*math.sin(math.radians(theta)),theta))
+		y = list(map(lambda theta: Rstar*math.cos(math.radians(theta)),theta))
+		
+		plt.plot(x,y)
+		plt.xlim(-1,1)
+		plt.ylim(-1,1)
+		plt.gca().set_aspect('equal', adjustable='box')
+
 	# defines upper convex arc coordinates
 	# ve is the entry angle
 	# vu is the value to define the upper convex radius
@@ -220,7 +234,6 @@ class Blade():
 		plt.gca().set_aspect('equal', adjustable='box')
 		plt.show()
 
-
 	# defines lower concave arc coordinates
 	# Precaution. there are still calculation uncertainties.
 	# ve is the entry angle
@@ -243,7 +256,7 @@ class Blade():
 			Ystar_b = ytmp
 			Rstar,Xstar_a,Ystar_a,myu_check = self.get_R(-num,v1)
 			myu = self.get_myu(self.get_mach(self.get_Mstar(Rstar)))
-			a1 = math.tan(-myu+math.radians(num))
+			a1 = math.tan(-myu+math.radians(num)*2)
 			b1 = Ystar_a - a1 * Xstar_a
 			a2 = math.tan(math.radians(num))
 			b2 = Ystar_b - a2 * Xstar_b
@@ -278,9 +291,12 @@ if __name__ == "__main__":
 	print("Design Supersonic Turbine")
 	f = Blade(1.4)
 	print("lower_concave")
+	f.get_arc(1,50,50,8,0)
+	f.get_arc(f.get_Ru(16),50,50,16,8)
+	plt.show()
 #	f.draw_lines(-10,20)
 #	f.get_R(-10,10)
-	f.lower_concave(2,30)
+#	f.lower_concave(0,30)
 #	f.upper_convex(40,35)
 #	f.plot_chara(360,5)
 	print("finish")
