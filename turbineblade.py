@@ -176,6 +176,7 @@ class Blade():
 		plt.xlim(-1,1)
 		plt.ylim(-1,1)
 		plt.gca().set_aspect('equal', adjustable='box')
+#		plt.show()
 
 	# defines upper convex arc coordinates
 	# ve is the entry angle
@@ -288,12 +289,25 @@ class Blade():
 		plt.show()
 
 if __name__ == "__main__":
+
+	gamma = 1.4
+	ve = 20
+	vl = 0
+	vu = 28
+	theta_in = 50
+	theta_out = 60
+
 	print("Design Supersonic Turbine")
-	f = Blade(1.4)
-	print("lower_concave")
-	f.get_arc(1,50,50,8,0)
-	f.get_arc(f.get_Ru(16),50,50,16,8)
+
+	f = Blade(gamma)
+
+	f.get_arc(f.get_Ru(vl),theta_in,theta_out,ve,vl)
+	f.get_arc(f.get_Ru(vu),theta_in,theta_out,vu,ve)
 	plt.show()
+
+	f.lower_concave(vl,ve)
+	f.upper_convex(vu,ve)
+
 #	f.draw_lines(-10,20)
 #	f.get_R(-10,10)
 #	f.lower_concave(0,30)
