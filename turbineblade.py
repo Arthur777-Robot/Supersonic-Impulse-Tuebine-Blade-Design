@@ -59,11 +59,18 @@ class Blade():
 
 			if Rstar == 1: break
 
-		for num in range(0,360):
-			R_x += [-math.sin(math.radians(num))]
-			R_y += [math.cos(math.radians(num))]
-			R_x_min += [-math.sin(math.radians(num))*self.Rstar_min]
-			R_y_min += [math.cos(math.radians(num))*self.Rstar_min]
+#		for num in range(0,360):
+#			R_x += [-math.sin(math.radians(num))]
+#			R_y += [math.cos(math.radians(num))]
+#			R_x_min += [-math.sin(math.radians(num))*self.Rstar_min]
+#			R_y_min += [math.cos(math.radians(num))*self.Rstar_min]
+
+		#test map func. Exactly same function as above "for" loop
+		num = 360
+		R_x = list(map(lambda theta: -math.sin(math.radians(theta)),range(0,num)))
+		R_y = list(map(lambda theta: math.cos(math.radians(theta)),range(0,num)))
+		R_x_min = list(map(lambda theta: -math.sin(math.radians(theta))*self.Rstar_min,range(0,num)))
+		R_y_min = list(map(lambda theta: math.cos(math.radians(theta))*self.Rstar_min,range(0,num)))
 
 		plt.plot(x0,y0)
 		plt.plot(x1,y1)
@@ -73,7 +80,6 @@ class Blade():
 		plt.ylim(-1,1)
 		plt.gca().set_aspect('equal', adjustable='box')
 		plt.show()
-
 
 	def plot_chara(self,angle,step):
 
@@ -123,14 +129,14 @@ class Blade():
 				x1 = self.chara_x(Rstar,theta2)
 				y1 = self.chara_y(Rstar,theta2)
 #				print(Rstar,math.degrees(theta1),math.degrees(theta2))
-				print(x0,y0,x1,y1,Rstar)
+#				print(x0,y0,x1,y1,Rstar)
 				if x1 - x0 < 0: 
 					if(temp_x - x1 == 0):		#this if is to avoid my fucking bug
 						myu_check = math.radians(90)		#no meaning for the value. 
 					else:
 						myu_check = math.atan((temp_y - y1)/(temp_x - x1))
-						if myu_check == 0:
-							print(theta1,theta2)
+#						if myu_check == 0:
+#							print(theta1,theta2)
 					temp_x = x1
 					temp_y = y1
 					Rstar = Rstar + 1/(10**num) 
@@ -155,47 +161,65 @@ class Blade():
 		return math.sqrt((2 * Mstar**2)/((self.gamma + 1) - (self.gamma - 1) * Mstar**2))
 
 	def get_Ru(self,vu):
-
-		Rstar = 1 #initial Rstar
-
-		for num in range(1,10):
-			while(1):
-				theta = self.chara_line(Rstar) - self.const -  math.radians(vu)
-				x = self.chara_x(Rstar,theta)
-				y = self.chara_y(Rstar,theta)
-				if x > 0:
-					Rstar = Rstar + 1/(10**num) 
-					break
-				Rstar = Rstar - 1/(10**num)
-		print(Rstar,x,y)
-		return Rstar
+		return self.get_R(-vu,vu)[0]
 
 	# defines upper convex arc coordinates
 	# ve is the entry angle
 	# vu is the value to define the upper convex radius
 	def upper_convex(self,vu,ve):
-
-		interval = math.radians(2)
-
-		Rustar = self.get_Ru(vu)
-		xinit = 0
-		yinit = Rustar
-
-		Xstar_b = xinit
-		Ystar_b = yinit
-
-		Rstar,Xstar_a,Ystar_a,myu_check = self.get_R(-vu,vu)
-#		myu = self.get_myu(self.get_mach(self.get_Mstar(Rstar)))
-#		a1 = math.tan(-myu+math.radians(num))
-#		b1 = Ystar_a - a1 * Xstar_a
-#		a2 = math.tan(math.radians(num))
-#		b2 = Ystar_b - a2 * Xstar_b
-
-		print(Rstar, Xstar_a, Ystar_a,myu_check)
-
 		
+		x,y = [],[]
+		Xstar,Ystar = [],[]
+		R_x,R_y = [],[]
+		R_x_min,R_y_min = [],[]
 
-#		print(Rustar, math.degrees(theta_init))
+		xtmp = 0
+		ytmp = self.get_Ru(vu)
+
+		for num in range(0,ve):
+			Xstar_b = xtmp
+			Ystar_b = ytmp
+			Rstar,Xstar_a,Ystar_a,myu_check = self.get_R(-vu,vu-num)
+			myu = self.get_myu(self.get_mach(self.get_Mstar(Rstar)))
+			a1 = math.tan(myu_check)
+			b1 = Ystar_a - a1 * Xstar_a
+			a2 = math.tan(math.radians(num))
+#			a2 = math.tan(myu_check-myu)
+			b2 = Ystar_b - a2 * Xstar_b
+			
+#			print(Rstar,Xstar_a,Ystar_a,math.degrees(myu_check),math.degrees(myu))
+			
+			xtmp = ((b2 - b1) / (a1 - a2))
+			ytmp = xtmp * a2 + b2
+
+			print(num,math.degrees(myu_check-myu),math.degrees(myu_check),math.degrees(myu))
+
+			x += [(xtmp)]
+			y += [(ytmp)]
+			Xstar += [(Xstar_a)]
+			Ystar += [(Ystar_a)]
+
+			xcomp = np.arange(-1,0,0.001)
+			ycomp = a1*xcomp + b1
+
+#			plt.plot(xcomp,ycomp)
+
+		for num in range(0,90):
+			R_x += [-math.sin(math.radians(num))]
+			R_y += [math.cos(math.radians(num))]
+			R_x_min += [-math.sin(math.radians(num))*self.get_Ru(vu)]
+			R_y_min += [math.cos(math.radians(num))*self.get_Ru(vu)]
+
+
+		plt.plot(x,y)
+		plt.plot(Xstar,Ystar)
+		plt.plot(R_x,R_y)
+		plt.plot(R_x_min,R_y_min)
+		plt.xlim(-1,0)
+		plt.ylim(0,1)
+		plt.gca().set_aspect('equal', adjustable='box')
+		plt.show()
+
 
 	# defines lower concave arc coordinates
 	# Precaution. there are still calculation uncertainties.
@@ -217,7 +241,7 @@ class Blade():
 
 			Xstar_b = xtmp
 			Ystar_b = ytmp
-			Rstar,Xstar_a,Ystar_a,myu_check = self.get_R(v1,num)
+			Rstar,Xstar_a,Ystar_a,myu_check = self.get_R(-num,v1)
 			myu = self.get_myu(self.get_mach(self.get_Mstar(Rstar)))
 			a1 = math.tan(-myu+math.radians(num))
 			b1 = Ystar_a - a1 * Xstar_a
@@ -256,7 +280,7 @@ if __name__ == "__main__":
 	print("lower_concave")
 #	f.draw_lines(-10,20)
 #	f.get_R(-10,10)
-#	f.lower_concave(-8,30)
-	f.upper_convex(20,30)
+	f.lower_concave(2,30)
+#	f.upper_convex(40,35)
 #	f.plot_chara(360,5)
 	print("finish")
