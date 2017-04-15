@@ -219,14 +219,15 @@ class Blade():
 		xtmp = 0
 		ytmp = self.get_Ru(vu)
 
-		for num in range(0,ve):
+		for num in range(0,ve*2):
 			Xstar_b = xtmp
 			Ystar_b = ytmp
 			Rstar,Xstar_a,Ystar_a,myu_check = self.get_R(-vu,vu-num)
 			myu = self.get_myu(self.get_mach(self.get_Mstar(Rstar)))
-			a1 = math.tan(myu_check)
+			a1 = math.tan(myu+math.radians(num/2))
+#			a1 = math.tan(myu_check)
 			b1 = Ystar_a - a1 * Xstar_a
-			a2 = math.tan(math.radians(num))
+			a2 = math.tan(math.radians(num/2))
 #			a2 = math.tan(myu_check-myu)
 			b2 = Ystar_b - a2 * Xstar_b
 			
@@ -235,7 +236,7 @@ class Blade():
 			xtmp = ((b2 - b1) / (a1 - a2))
 			ytmp = xtmp * a2 + b2
 
-			print(num,math.degrees(myu_check-myu),math.degrees(myu_check),math.degrees(myu))
+			print(num/2,Rstar,math.degrees(myu_check),math.degrees(myu),xtmp,ytmp)
 
 			x += [(xtmp)]
 			y += [(ytmp)]
@@ -279,21 +280,21 @@ class Blade():
 		R_x,R_y = [],[]
 
 		#v1 is the origin angle. ve is the end angle
-		for num in range(v1,ve):	
+		for num in range(v1,ve*2):	
 
 			Xstar_b = xtmp
 			Ystar_b = ytmp
 			Rstar,Xstar_a,Ystar_a,myu_check = self.get_R(-num,v1)
 			myu = self.get_myu(self.get_mach(self.get_Mstar(Rstar)))
-			a1 = math.tan(-myu+math.radians(num)*2)
+			a1 = math.tan(-myu+math.radians(num/2))
 			b1 = Ystar_a - a1 * Xstar_a
-			a2 = math.tan(math.radians(num))
+			a2 = math.tan(math.radians(num/2))
 			b2 = Ystar_b - a2 * Xstar_b
 
 			xtmp = ((b2 - b1) / (a1 - a2))
 			ytmp = xtmp * a2 + b2
 
-			print(num,Rstar,math.degrees(myu_check),math.degrees(myu),xtmp,ytmp)
+			print(num/2,Rstar,math.degrees(myu_check),math.degrees(myu),xtmp,ytmp)
 			x += [(xtmp)]
 			y += [(ytmp)]
 			Xstar += [(Xstar_a)]
@@ -302,7 +303,7 @@ class Blade():
 			xcomp = np.arange(-1,0,0.001)
 			ycomp = a1*xcomp + b1
 
-			plt.plot(xcomp,ycomp)
+#			plt.plot(xcomp,ycomp)
 
 		for num in range(0,90):
 			R_x += [-math.sin(math.radians(num))]
@@ -319,10 +320,10 @@ class Blade():
 if __name__ == "__main__":
 
 	gamma = 1.4
-	vin = 20
+	vin = 30
 	vout = 20
 	vl = 0
-	vu = 28
+	vu = 36
 	theta_in_upper = 30
 	theta_in_lower = 30
 	theta_out_upper = 60
@@ -332,9 +333,9 @@ if __name__ == "__main__":
 
 	f = Blade(gamma)
 
-	f.get_upper_arc(f.get_Ru(vu),theta_in_upper,theta_out_upper,vu,vin,vout)
-	f.get_lower_arc(f.get_Ru(vl),theta_in_lower,theta_out_lower,vl,vin,vout)
-	plt.show()
+#	f.get_upper_arc(f.get_Ru(vu),theta_in_upper,theta_out_upper,vu,vin,vout)
+#	f.get_lower_arc(f.get_Ru(vl),theta_in_lower,theta_out_lower,vl,vin,vout)
+#	plt.show()
 
 	f.lower_concave(vl,vin)
 	f.upper_convex(vu,vin)
