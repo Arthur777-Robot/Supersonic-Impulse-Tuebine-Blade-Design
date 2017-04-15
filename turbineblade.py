@@ -164,19 +164,47 @@ class Blade():
 		return self.get_R(-vu,vu)[0]
 
 	#In the papaer, theta are defines around 90-120deg
-	def get_arc(self,Rstar,theta_in,theta_out,v1,v2):
+	def get_upper_arc(self,Rstar,theta_in,theta_out,vu,vin,vout):
 		
 		x,y = [],[]
 
-		theta = np.arange(-(theta_in-v1+v2),(theta_out-v1+v2),0.1)
+		beta_in = -(theta_in-vu+vin)
+		beta_out = theta_out-vu+vout
+
+		theta = np.arange(beta_in,beta_out,0.1)
 		x = list(map(lambda theta: Rstar*math.sin(math.radians(theta)),theta))
 		y = list(map(lambda theta: Rstar*math.cos(math.radians(theta)),theta))
+		
+		print(beta_in,beta_out)
+		print(x[0],y[0])
+		print(x[-1],y[-1])
+		plt.plot(x,y)
+		plt.xlim(-1,1)
+		plt.ylim(-1,1)
+		plt.gca().set_aspect('equal', adjustable='box')
+#		plt.show()
+
+	def get_lower_arc(self,Rstar,theta_in,theta_out,vl,vin,vout):
+		
+		x,y = [],[]
+
+		alpha_in = -(theta_in-vin+vl)
+		alpha_out = theta_out-vout+vl
+
+		theta = np.arange(alpha_in,alpha_out,0.1)
+		x = list(map(lambda theta: Rstar*math.sin(math.radians(theta)),theta))
+		y = list(map(lambda theta: Rstar*math.cos(math.radians(theta)),theta))
+		
+		print(alpha_in,alpha_out)
+		print(x[0],y[0])
+		print(x[-1],y[-1])
 		
 		plt.plot(x,y)
 		plt.xlim(-1,1)
 		plt.ylim(-1,1)
 		plt.gca().set_aspect('equal', adjustable='box')
 #		plt.show()
+
 
 	# defines upper convex arc coordinates
 	# ve is the entry angle
@@ -291,23 +319,25 @@ class Blade():
 if __name__ == "__main__":
 
 	gamma = 1.4
-	ve = 20
+	vin = 20
+	vout = 20
 	vl = 0
 	vu = 28
-	theta_in = 50
-	theta_out = 60
+	theta_in_upper = 30
+	theta_in_lower = 30
+	theta_out_upper = 60
+	theta_out_lower = 60
 
 	print("Design Supersonic Turbine")
 
 	f = Blade(gamma)
 
-	f.get_arc(f.get_Ru(vl),theta_in,theta_out,ve,vl)
-	f.get_arc(f.get_Ru(vu),theta_in,theta_out,vu,ve)
+	f.get_upper_arc(f.get_Ru(vu),theta_in_upper,theta_out_upper,vu,vin,vout)
+	f.get_lower_arc(f.get_Ru(vl),theta_in_lower,theta_out_lower,vl,vin,vout)
 	plt.show()
 
-	f.lower_concave(vl,ve)
-	f.upper_convex(vu,ve)
-
+	f.lower_concave(vl,vin)
+	f.upper_convex(vu,vin)
 #	f.draw_lines(-10,20)
 #	f.get_R(-10,10)
 #	f.lower_concave(0,30)
