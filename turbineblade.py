@@ -13,6 +13,7 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import interp1d
+from scipy import integrate
 
 plt.close('all')
 
@@ -317,13 +318,42 @@ class Blade():
 		plt.gca().set_aspect('equal', adjustable='box')
 		plt.show()
 
+	def get_Q(self,Rlstar,Rustar):
+		
+		Mlstar = 1/Rlstar
+		Mustar = 1/Rustar
+
+		Mach = lambda Mach:(((self.gamma+1) / 2 - (self.gamma-1) * Mach**2 / 2)**(1 / (self.gamma - 1)))/Mach
+
+		Q1 = Mlstar * Mustar / (Mustar - Mlstar)
+		Q2 = integrate.quad(Mach,Mlstar,Mustar)
+
+		Q = Q1*Q2[0]
+
+		return Q
+
+	def get_Gstar(self,vl,vu,theta_in):
+
+		Ae = 0
+		Rlstar = self.get_Ru(vl)
+		Rustar = self.get_Ru(vu)
+		Q = self.get_Q(Rlstar,Rustar)
+		
+		Astar = (Rlstar - Rustar) / Q
+
+		print(Astar)
+
+#		Gstar = Ae/Astar * Q * (Rl - Ru) / math.cos(theta_in)
+		print("daradara")
+
+
 if __name__ == "__main__":
 
 	gamma = 1.4
 	vin = 30
 	vout = 20
 	vl = 0
-	vu = 36
+	vu = 30
 	theta_in_upper = 30
 	theta_in_lower = 30
 	theta_out_upper = 60
@@ -337,8 +367,10 @@ if __name__ == "__main__":
 #	f.get_lower_arc(f.get_Ru(vl),theta_in_lower,theta_out_lower,vl,vin,vout)
 #	plt.show()
 
-	f.lower_concave(vl,vin)
-	f.upper_convex(vu,vin)
+	f.get_Gstar(vl,vu,theta_in_upper)
+
+#	f.lower_concave(vl,vin)
+#	f.upper_convex(vu,vin)
 #	f.draw_lines(-10,20)
 #	f.get_R(-10,10)
 #	f.lower_concave(0,30)
