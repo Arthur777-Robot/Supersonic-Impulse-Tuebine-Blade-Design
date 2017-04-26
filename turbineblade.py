@@ -180,12 +180,12 @@ class Blade():
 		print(x[0],y[0])
 		print(x[-1],y[-1])
 		plt.plot(x,y)
-		plt.xlim(-1,1)
-		plt.ylim(-1,1)
+		plt.xlim(-2,2)
+		plt.ylim(-2,2)
 		plt.gca().set_aspect('equal', adjustable='box')
 #		plt.show()
 
-	def get_lower_arc(self,Rstar,theta_in,theta_out,vl,vin,vout):
+	def get_lower_arc(self,Rstar,theta_in,theta_out,vl,vin,vout,shift = 0):
 		
 		x,y = [],[]
 
@@ -194,15 +194,15 @@ class Blade():
 
 		theta = np.arange(alpha_in,alpha_out,0.1)
 		x = list(map(lambda theta: Rstar*math.sin(math.radians(theta)),theta))
-		y = list(map(lambda theta: Rstar*math.cos(math.radians(theta)),theta))
+		y = list(map(lambda theta: shift + Rstar*math.cos(math.radians(theta)),theta))
 		
 		print(alpha_in,alpha_out)
 		print(x[0],y[0])
 		print(x[-1],y[-1])
 		
 		plt.plot(x,y)
-		plt.xlim(-1,1)
-		plt.ylim(-1,1)
+		plt.xlim(-2,2)
+		plt.ylim(-2,2)
 		plt.gca().set_aspect('equal', adjustable='box')
 #		plt.show()
 
@@ -210,7 +210,7 @@ class Blade():
 	# defines upper convex arc coordinates
 	# ve is the entry angle
 	# vu is the value to define the upper convex radius
-	def upper_convex(self,vu,ve):
+	def upper_convex(self,vu,ve,theta):
 		
 		x,y = [],[]
 		Xstar,Ystar = [],[]
@@ -237,10 +237,12 @@ class Blade():
 			xtmp = ((b2 - b1) / (a1 - a2))
 			ytmp = xtmp * a2 + b2
 
-			print(num/2,Rstar,math.degrees(myu_check),math.degrees(myu),xtmp,ytmp)
+#			print(num/2,Rstar,math.degrees(myu_check),math.degrees(myu),xtmp,ytmp)
 
-			x += [(xtmp)]
-			y += [(ytmp)]
+			rotx,roty = self.rotate(xtmp,ytmp,theta)
+
+			x += [(rotx)]
+			y += [(roty)]
 			Xstar += [(Xstar_a)]
 			Ystar += [(Ystar_a)]
 
@@ -257,18 +259,20 @@ class Blade():
 
 
 		plt.plot(x,y)
-		plt.plot(Xstar,Ystar)
-		plt.plot(R_x,R_y)
-		plt.plot(R_x_min,R_y_min)
-		plt.xlim(-1,0)
-		plt.ylim(0,1)
-		plt.gca().set_aspect('equal', adjustable='box')
-		plt.show()
+#		plt.plot(Xstar,Ystar)
+#		plt.plot(R_x,R_y)
+#		plt.plot(R_x_min,R_y_min)
+#		plt.xlim(-1,0)
+#		plt.ylim(0,1)
+#		plt.gca().set_aspect('equal', adjustable='box')
+#		plt.show()
+
+		return x[-1],y[-1]
 
 	# defines lower concave arc coordinates
 	# Precaution. there are still calculation uncertainties.
 	# ve is the entry angle
-	def lower_concave(self,v1,ve):
+	def lower_concave(self,v1,ve,theta,shift = 0):
 		
 		xinit = -math.sin(math.radians(v1))		
 		yinit= math.cos(math.radians(v1))		
@@ -296,8 +300,11 @@ class Blade():
 			ytmp = xtmp * a2 + b2
 
 			print(num/2,Rstar,math.degrees(myu_check),math.degrees(myu),xtmp,ytmp)
-			x += [(xtmp)]
-			y += [(ytmp)]
+			
+			rotx,roty = self.rotate(xtmp,ytmp,theta)
+
+			x += [(rotx)]
+			y += [(roty + shift)]
 			Xstar += [(Xstar_a)]
 			Ystar += [(Ystar_a)]
 
@@ -311,12 +318,14 @@ class Blade():
 			R_y += [math.cos(math.radians(num))]
 
 		plt.plot(x,y)
-		plt.plot(Xstar,Ystar)
-		plt.plot(R_x,R_y)
-		plt.xlim(-1,0)
-		plt.ylim(0,1)
-		plt.gca().set_aspect('equal', adjustable='box')
-		plt.show()
+#		plt.plot(Xstar,Ystar)
+#		plt.plot(R_x,R_y)
+#		plt.xlim(-1,0)
+#		plt.ylim(0,1)
+#		plt.gca().set_aspect('equal', adjustable='box')
+#		plt.show()
+
+		return x[-1],y[-1]
 
 	def get_Q(self,Rlstar,Rustar):
 		
@@ -347,6 +356,26 @@ class Blade():
 		print("daradara")
 
 
+	def rotate(self,x,y,angle):
+
+		theta = math.radians(angle)
+
+		a = np.array((
+			(math.cos(theta),-math.sin(theta)),
+			(math.sin(theta),math.cos(theta))
+			))
+
+		b = np.array((x,y))
+
+		return np.dot(a,b)
+
+	def straight_line(self,theta,x,y,targetx):
+
+		targety = math.tan(math.radians(theta)) * targetx + y - math.tan(math.radians(theta)) * x
+
+		return targety
+
+
 if __name__ == "__main__":
 
 	gamma = 1.4
@@ -355,7 +384,7 @@ if __name__ == "__main__":
 	vl = 0
 	vu = 30
 	theta_in_upper = 30
-	theta_in_lower = 30
+	theta_in_lower = 60
 	theta_out_upper = 60
 	theta_out_lower = 60
 
@@ -366,11 +395,20 @@ if __name__ == "__main__":
 #	f.get_upper_arc(f.get_Ru(vu),theta_in_upper,theta_out_upper,vu,vin,vout)
 #	f.get_lower_arc(f.get_Ru(vl),theta_in_lower,theta_out_lower,vl,vin,vout)
 #	plt.show()
+	
+#	a = f.rotate(1,0,45)
+#	f.get_Gstar(vl,vu,theta_in_upper)
 
-	f.get_Gstar(vl,vu,theta_in_upper)
-
-#	f.lower_concave(vl,vin)
-#	f.upper_convex(vu,vin)
+	xlow,ylow = f.lower_concave(vl,vin,theta_in_lower-vin)
+	xup,yup = f.upper_convex(vu,vin,theta_in_upper)
+	f.get_lower_arc(f.get_Ru(vl),theta_in_lower,theta_out_lower,vl,vin,vout)
+	f.get_upper_arc(f.get_Ru(vu),theta_in_upper,theta_out_upper,vu,vin,vout)
+	newy = f.straight_line(90-vin,xup,yup,xlow)
+	plt.plot([xlow,xup],[newy,yup])
+	shift = -abs(ylow - newy)
+	f.lower_concave(vl,vin,theta_in_lower-vin,shift)
+	f.get_lower_arc(f.get_Ru(vl),theta_in_lower,theta_out_lower,vl,vin,vout,shift)
+	plt.show()
 #	f.draw_lines(-10,20)
 #	f.get_R(-10,10)
 #	f.lower_concave(0,30)
