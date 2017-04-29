@@ -26,7 +26,7 @@ class Blade():
 		self.gamma = gamma
 		self.Rstar_min = math.sqrt((self.gamma - 1)/(self.gamma + 1))
 		self.const = self.chara_line(1)
-		self.ve= self.get_Pr(mach)
+		self.ve= int(round(self.get_Pr(mach)))
 
 	def chara_line(self,Rstar):
 
@@ -390,24 +390,40 @@ class Blade():
 		
 		Pr = math.degrees(tmp1 + tmp2)
 
-		return int(round(Pr))
+		return Pr
+
+	# can calculate from mach 1-10
+	def get_mach_from_prandtle_meyer(self,v1):
+		mach = 1
+		for num in range(0,10):
+			while(1):
+#				print(v1,self.get_Pr(mach),mach)
+				if(v1<=self.get_Pr(mach)):break
+				mach = mach + 1.0/(10**num)
+			if(v1==self.get_Pr(mach)):break
+			mach = mach - 1.0/(10**num)
+		return mach
 
 if __name__ == "__main__":
 
 	gamma = 1.4
-	mach = 2.0
+	mach = 2.5
 	vin = 30
 	vout = 20
 	vl = 0
 	vu = 30
 	theta_in_upper = 30
-	theta_in_lower = 60
+	theta_in_lower = 30
 	theta_out_upper = 60
 	theta_out_lower = 60
 
 	print("Design Supersonic Turbine")
 
 	f = Blade(gamma,mach)
+
+	print "upper mach number = ",f.get_mach_from_prandtle_meyer(vu),"vu = ",vu
+	print "lower mach number = ",f.get_mach_from_prandtle_meyer(vl),"vl = ",vl
+
 
 #	f.get_upper_arc(f.get_Ru(vu),theta_in_upper,theta_out_upper,vu,vin,vout)
 #	f.get_lower_arc(f.get_Ru(vl),theta_in_lower,theta_out_lower,vl,vin,vout)
@@ -416,8 +432,8 @@ if __name__ == "__main__":
 #	a = f.rotate(1,0,45)
 #	f.get_Gstar(vl,vu,theta_in_upper)
 
-	xlow,ylow = f.lower_concave(vl,theta_in_lower)
-	xup,yup = f.upper_convex(vu,theta_in_upper)
+#	xlow,ylow = f.lower_concave(vl,theta_in_lower)
+#	xup,yup = f.upper_convex(vu,theta_in_upper)
 #	f.get_lower_arc(f.get_Ru(vl),theta_in_lower,theta_out_lower,vl,vout)
 #	f.get_upper_arc(f.get_Ru(vu),theta_in_upper,theta_out_upper,vu,vout)
 #	newy = f.straight_line(90-vin,xup,yup,xlow)
