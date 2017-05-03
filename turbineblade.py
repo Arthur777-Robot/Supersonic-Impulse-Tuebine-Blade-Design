@@ -27,7 +27,9 @@ class Blade():
 		self.Rstar_min = math.sqrt((self.gamma - 1)/(self.gamma + 1))
 		self.const = self.chara_line(1)
 		self.ve= int(round(self.get_Pr(mach)))
+		print "Inlet Mach = ",mach,"Inlet Prandtle meyer angle = ",self.ve
 
+	# if Rstar value is less than self.Rstar_min, if will give math error
 	def chara_line(self,Rstar):
 
 		fai = 0.5 * (math.sqrt((self.gamma + 1)/(self.gamma - 1)) * math.asin((self.gamma - 1) / Rstar**2 - self.gamma) + math.asin((self.gamma + 1) *  Rstar**2 - self.gamma))
@@ -148,7 +150,11 @@ class Blade():
 
 					break
 				else:
-					Rstar -= float(1.0/(10**num))
+					Rstar -= 1.0/(10**num)
+					
+					if Rstar < self.Rstar_min :
+						Rstar += 1.0/(10**num) 
+						break
 
 			if (x0 == x1) and (y0 == y1):
 				break
@@ -176,10 +182,12 @@ class Blade():
 		
 		x,y = [],[]
 
-		beta_in = -(theta_in-vu+self.ve)
-		beta_out = theta_out-vu+vout
+		alpha_in = 90 - theta_in-(vu-self.ve)
+		alpha_out = 90 - theta_out-(vu-vout)
 
-		theta = np.arange(beta_in,beta_out,0.1)
+		print "Upper arc alpha_in = ", alpha_in, "alpha_out = ",alpha_out
+
+		theta = np.arange(-alpha_in,alpha_out,0.1)
 		x = list(map(lambda theta: Rstar*math.sin(math.radians(theta)),theta))
 		y = list(map(lambda theta: Rstar*math.cos(math.radians(theta)),theta))
 		
@@ -196,10 +204,12 @@ class Blade():
 		
 		x,y = [],[]
 
-		alpha_in = -(theta_in-self.ve+vl)
-		alpha_out = theta_out-vout+vl
+		alpha_in = 90 - theta_in - (self.ve - vl)
+		alpha_out = 90 - theta_out - (vout - vl)
 
-		theta = np.arange(alpha_in,alpha_out,0.1)
+		print "Lower arc alpha_in = ", alpha_in, "alpha_out = ",alpha_out
+
+		theta = np.arange(-alpha_in,alpha_out,0.1)
 		x = list(map(lambda theta: Rstar*math.sin(math.radians(theta)),theta))
 		y = list(map(lambda theta: shift + Rstar*math.cos(math.radians(theta)),theta))
 		
@@ -272,7 +282,7 @@ class Blade():
 		plt.xlim(-2,2)
 		plt.ylim(-2,2)
 		plt.gca().set_aspect('equal', adjustable='box')
-		plt.show()
+#		plt.show()
 
 		return x[-1],y[-1]
 
@@ -305,7 +315,7 @@ class Blade():
 			xtmp = ((b2 - b1) / (a1 - a2))
 			ytmp = xtmp * a2 + b2
 
-			print(num/2.0,Rstar,math.degrees(myu_check),math.degrees(myu),xtmp,ytmp,Xstar_a,Ystar_a)
+#			print(num/2.0,Rstar,math.degrees(myu_check),math.degrees(myu),xtmp,ytmp,Xstar_a,Ystar_a)
 			
 			rotx,roty = self.rotate(xtmp,ytmp,theta)
 
@@ -329,7 +339,7 @@ class Blade():
 		plt.xlim(-2,2)
 		plt.ylim(-2,2)
 		plt.gca().set_aspect('equal', adjustable='box')
-		plt.show()
+#		plt.show()
 
 		return x[-1],y[-1]
 
@@ -392,7 +402,6 @@ class Blade():
 
 		return Pr
 
-	# can calculate from mach 1-10
 	def get_mach_from_prandtle_meyer(self,v1):
 		mach = 1
 		for num in range(0,10):
@@ -404,44 +413,60 @@ class Blade():
 			mach = mach - 1.0/(10**num)
 		return mach
 
+	def valuables_limit(self,vl,vu):
+
+		vumin = self.ve
+		vlmin = 0
+		vlmax = self.ve
+		vumax = math.degrees((math.pi/2) * (math.sqrt((self.gamma + 1)/(self.gamma - 1)) - 1))
+
+		print "upper max = ",vumax,"upper min = ",vumin,"lower max = ",vlmax,"lower min = ",vlmin
+
 if __name__ == "__main__":
 
 	gamma = 1.4
-	mach = 2.5
-	vin = 30
-	vout = 20
+	mach_in = 2.5
+	vout = 30
 	vl = 0
-	vu = 30
-	theta_in_upper = 30
-	theta_in_lower = 30
-	theta_out_upper = 60
-	theta_out_lower = 60
+	vu = 45
+
+	theta_in = 30
+	theta_out = 30
+	theta_in_upper = 45
+	theta_in_lower = 45
+	theta_out_upper = 30
+	theta_out_lower = 30
 
 	print("Design Supersonic Turbine")
 
-	f = Blade(gamma,mach)
+	f = Blade(gamma,mach_in)
 
 	print "upper mach number = ",f.get_mach_from_prandtle_meyer(vu),"vu = ",vu
 	print "lower mach number = ",f.get_mach_from_prandtle_meyer(vl),"vl = ",vl
 
+	f.valuables_limit(vl,vu)
 
-#	f.get_upper_arc(f.get_Ru(vu),theta_in_upper,theta_out_upper,vu,vin,vout)
-#	f.get_lower_arc(f.get_Ru(vl),theta_in_lower,theta_out_lower,vl,vin,vout)
+
+#	f.get_upper_arc(f.get_Ru(vu),theta_in_upper,theta_out_upper,vu,vout)
+#	f.get_lower_arc(f.get_Ru(vl),theta_in_lower,theta_out_lower,vl,vout)
 #	plt.show()
 	
 #	a = f.rotate(1,0,45)
 #	f.get_Gstar(vl,vu,theta_in_upper)
 
-#	xlow,ylow = f.lower_concave(vl,theta_in_lower)
-#	xup,yup = f.upper_convex(vu,theta_in_upper)
-#	f.get_lower_arc(f.get_Ru(vl),theta_in_lower,theta_out_lower,vl,vout)
-#	f.get_upper_arc(f.get_Ru(vu),theta_in_upper,theta_out_upper,vu,vout)
-#	newy = f.straight_line(90-vin,xup,yup,xlow)
-#	plt.plot([xlow,xup],[newy,yup])
-#	shift = -abs(ylow - newy)
-#	f.lower_concave(vl,theta_in_lower-vin,shift)
-#	f.get_lower_arc(f.get_Ru(vl),theta_in_lower,theta_out_lower,vl,vout,shift)
-#	plt.show()
+
+	Ualpha_in = 90 - theta_in - (vu - f.ve)
+	Lalpha_in = 90 - theta_in - (f.ve - vl)
+	xlow,ylow = f.lower_concave(vl,theta_in_lower)
+	xup,yup = f.upper_convex(vu,theta_in_upper)
+	f.get_lower_arc(f.get_Ru(vl),theta_in_lower,theta_out_lower,vl,vout)
+	f.get_upper_arc(f.get_Ru(vu),theta_in_upper,theta_out_upper,vu,vout)
+	newy = f.straight_line(theta_in,xup,yup,xlow)
+	plt.plot([xlow,xup],[newy,yup])
+	shift = -abs(ylow - newy)
+	f.lower_concave(Ualpha_in,theta_in_lower,shift)
+	f.get_lower_arc(f.get_Ru(vl),theta_in_lower,theta_out_lower,vl,vout,shift)
+	plt.show()
 
 #	f.draw_lines(-10,20)
 #	f.lower_concave(0,30)
