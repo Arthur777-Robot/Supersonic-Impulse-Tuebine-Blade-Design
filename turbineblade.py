@@ -27,7 +27,7 @@ class Blade():
 		self.Rstar_min = math.sqrt((self.gamma - 1)/(self.gamma + 1))
 		self.const = self.chara_line(1)
 		self.ve= int(round(self.get_Pr(mach)))
-		print "Inlet Mach = ",mach,"Inlet Prandtle meyer angle = ",self.ve
+		print("Inlet Mach = ",mach,"Inlet Prandtle meyer angle = ",self.ve)
 
 	# if Rstar value is less than self.Rstar_min, if will give math error
 	def chara_line(self,Rstar):
@@ -37,25 +37,25 @@ class Blade():
 		return fai
 
 	def chara_x(self,Rstar,theta):
-		return Rstar*math.sin(theta) 
+		return Rstar*math.sin(theta)
 
 	def chara_y(self,Rstar,theta):
-		return Rstar*math.cos(theta) 
+		return Rstar*math.cos(theta)
 
 	# draws 2 characteristic lines. the angle starts from v1(compression wave) and v2(expansion wave).
 	def draw_lines(self,v1,v2):
-		
+
 		v1 = math.radians(v1)
 		v2 = math.radians(v2)
 
 		counter = 1000
 		x0,y0,x1,y1,R_x,R_y,R_x_min,R_y_min = [],[],[],[],[],[],[],[]
 		for num in range(1,counter):
-			Rstar = self.Rstar_min + num*1.0/counter 
-			if Rstar > 1: 
+			Rstar = self.Rstar_min + num*1.0/counter
+			if Rstar > 1:
 				Rstar = 1.0
 			theta1 = (self.chara_line(Rstar) - self.const) + v1
-			theta2 = -(self.chara_line(Rstar) - self.const) + v2 
+			theta2 = -(self.chara_line(Rstar) - self.const) + v2
 			x0 += [(self.chara_x(Rstar,theta1))]
 			y0 += [(self.chara_y(Rstar,theta1))]
 			x1 += [(self.chara_x(Rstar,theta2))]
@@ -93,8 +93,8 @@ class Blade():
 		for j in range(0,angle,step):
 			del x1[:],y1[:],x2[:],y2[:]
 			for i in range(counter):
-				Rstar = self.Rstar_min + i *1/counter 
-				if Rstar > 1: 
+				Rstar = self.Rstar_min + i *1/counter
+				if Rstar > 1:
 					Rstar = 1
 				fai = self.chara_line(Rstar)
 				x1.append(self.chara_x(Rstar,fai - self.const + math.radians(j)))
@@ -111,7 +111,7 @@ class Blade():
 		plt.gca().set_aspect('equal', adjustable='box')
 		plt.show()
 
-	# top arc angle is 0 
+	# top arc angle is 0
 	# v1 must be smaller than v2
 	def get_R(self,v1,v2):
 
@@ -127,7 +127,7 @@ class Blade():
 		for num in range(1,10): #decimal precision of Rstar
 			while(1):
 				theta1 = (self.chara_line(Rstar) - self.const) + v1
-				theta2 = -(self.chara_line(Rstar) - self.const) + v2 
+				theta2 = -(self.chara_line(Rstar) - self.const) + v2
 				x0 = self.chara_x(Rstar,theta1)
 				y0 = self.chara_y(Rstar,theta1)
 				x1 = self.chara_x(Rstar,theta2)
@@ -137,23 +137,23 @@ class Blade():
 				if (x0 == x1) and (y0 == y1):
 					myu_check = 0
 					break
-				elif x1 - x0 < 0: 
+				elif x1 - x0 < 0:
 					if(temp_x - x1 == 0):		#this if is to avoid my fucking bug
-						myu_check = math.radians(90)		#no meaning for the value. 
+						myu_check = math.radians(90)		#no meaning for the value.
 					else:
 						myu_check = math.atan((temp_y - y1)/(temp_x - x1))
 #						if myu_check == 0:
 #							print(theta1,theta2)
 					temp_x = x1
 					temp_y = y1
-					Rstar += 1.0/(10**num) 
+					Rstar += 1.0/(10**num)
 
 					break
 				else:
 					Rstar -= 1.0/(10**num)
-					
+
 					if Rstar < self.Rstar_min :
-						Rstar += 1.0/(10**num) 
+						Rstar += 1.0/(10**num)
 						break
 
 			if (x0 == x1) and (y0 == y1):
@@ -167,7 +167,7 @@ class Blade():
 
 	def get_myu(self,M):
 		return math.asin(1/M)
-	
+
 	def get_Mstar(self,Rstar):
 		return 1/Rstar
 
@@ -179,18 +179,18 @@ class Blade():
 
 	#In the papaer, theta are defines around 90-120deg
 	def get_upper_arc(self,Rstar,theta_in,theta_out,vu,vout):
-		
+
 		x,y = [],[]
 
 		alpha_in = 90 - theta_in-(vu-self.ve)
 		alpha_out = 90 - theta_out-(vu-vout)
 
-		print "Upper arc alpha_in = ", alpha_in, "alpha_out = ",alpha_out
+		print("Upper arc alpha_in = ", alpha_in, "alpha_out = ",alpha_out)
 
 		theta = np.arange(-alpha_in,alpha_out,0.1)
 		x = list(map(lambda theta: Rstar*math.sin(math.radians(theta)),theta))
 		y = list(map(lambda theta: Rstar*math.cos(math.radians(theta)),theta))
-		
+
 #		print(beta_in,beta_out)
 #		print(x[0],y[0])
 #		print(x[-1],y[-1])
@@ -201,22 +201,22 @@ class Blade():
 #		plt.show()
 
 	def get_lower_arc(self,Rstar,theta_in,theta_out,vl,vout,shift = 0):
-		
+
 		x,y = [],[]
 
 		alpha_in = 90 - theta_in - (self.ve - vl)
 		alpha_out = 90 - theta_out - (vout - vl)
 
-		print "Lower arc alpha_in = ", alpha_in, "alpha_out = ",alpha_out
+		print("Lower arc alpha_in = ", alpha_in, "alpha_out = ",alpha_out)
 
 		theta = np.arange(-alpha_in,alpha_out,0.1)
 		x = list(map(lambda theta: Rstar*math.sin(math.radians(theta)),theta))
 		y = list(map(lambda theta: shift + Rstar*math.cos(math.radians(theta)),theta))
-		
+
 #		print(alpha_in,alpha_out)
 #		print(x[0],y[0])
 #		print(x[-1],y[-1])
-		
+
 		plt.plot(x,y)
 		plt.xlim(-2,2)
 		plt.ylim(-2,2)
@@ -228,7 +228,7 @@ class Blade():
 	# ve is the entry angle
 	# vu is the value to define the upper convex radius
 	def upper_convex(self,vu,theta):
-		
+
 		x,y = [],[]
 		Xstar,Ystar = [],[]
 		R_x,R_y = [],[]
@@ -248,9 +248,9 @@ class Blade():
 			a2 = math.tan(math.radians(num/2.0))
 #			a2 = math.tan(myu_check-myu)
 			b2 = Ystar_b - a2 * Xstar_b
-			
+
 #			print(Rstar,Xstar_a,Ystar_a,math.degrees(myu_check),math.degrees(myu))
-			
+
 			xtmp = ((b2 - b1) / (a1 - a2))
 			ytmp = xtmp * a2 + b2
 
@@ -289,9 +289,9 @@ class Blade():
 	# defines lower concave arc coordinates
 	# Precaution. there are still calculation uncertainties.
 	def lower_concave(self,v1,theta,shift = 0):
-		
-		xinit = -math.sin(math.radians(v1))		
-		yinit= math.cos(math.radians(v1))		
+
+		xinit = -math.sin(math.radians(v1))
+		yinit= math.cos(math.radians(v1))
 
 		xtmp = xinit
 		ytmp = yinit
@@ -300,7 +300,7 @@ class Blade():
 		Xstar,Ystar = [],[]
 		R_x,R_y = [],[]
 
-		for num in range(v1,self.ve*2):	
+		for num in range(v1,self.ve*2):
 
 			Xstar_b = xtmp
 			Ystar_b = ytmp
@@ -316,7 +316,7 @@ class Blade():
 			ytmp = xtmp * a2 + b2
 
 #			print(num/2.0,Rstar,math.degrees(myu_check),math.degrees(myu),xtmp,ytmp,Xstar_a,Ystar_a)
-			
+
 			rotx,roty = self.rotate(xtmp,ytmp,theta)
 
 			x += [(rotx)]
@@ -344,7 +344,7 @@ class Blade():
 		return x[-1],y[-1]
 
 	def get_Q(self,Rlstar,Rustar):
-		
+
 		Mlstar = 1/Rlstar
 		Mustar = 1/Rustar
 
@@ -363,7 +363,7 @@ class Blade():
 		Rlstar = self.get_Ru(vl)
 		Rustar = self.get_Ru(vu)
 		Q = self.get_Q(Rlstar,Rustar)
-		
+
 		Astar = (Rlstar - Rustar) / Q
 
 		print(Astar)
@@ -397,7 +397,7 @@ class Blade():
 		Mstar = (((self.gamma + 1) / 2 * Mach**2)/(1+(self.gamma - 1) / 2 * Mach**2))**0.5
 		tmp1 = math.pi/4 * (math.sqrt((self.gamma + 1)/(self.gamma - 1)) - 1)
 		tmp2 = self.chara_line(1/Mstar)
-		
+
 		Pr = math.degrees(tmp1 + tmp2)
 
 		return Pr
@@ -420,7 +420,7 @@ class Blade():
 		vlmax = self.ve
 		vumax = math.degrees((math.pi/2) * (math.sqrt((self.gamma + 1)/(self.gamma - 1)) - 1))
 
-		print "upper max = ",vumax,"upper min = ",vumin,"lower max = ",vlmax,"lower min = ",vlmin
+		print("upper max = ",vumax,"upper min = ",vumin,"lower max = ",vlmax,"lower min = ",vlmin)
 
 if __name__ == "__main__":
 
@@ -441,8 +441,8 @@ if __name__ == "__main__":
 
 	f = Blade(gamma,mach_in)
 
-	print "upper mach number = ",f.get_mach_from_prandtle_meyer(vu),"vu = ",vu
-	print "lower mach number = ",f.get_mach_from_prandtle_meyer(vl),"vl = ",vl
+	print("upper mach number = ",f.get_mach_from_prandtle_meyer(vu),"vu = ",vu)
+	print("lower mach number = ",f.get_mach_from_prandtle_meyer(vl),"vl = ",vl)
 
 	f.valuables_limit(vl,vu)
 
@@ -450,7 +450,7 @@ if __name__ == "__main__":
 #	f.get_upper_arc(f.get_Ru(vu),theta_in_upper,theta_out_upper,vu,vout)
 #	f.get_lower_arc(f.get_Ru(vl),theta_in_lower,theta_out_lower,vl,vout)
 #	plt.show()
-	
+
 #	a = f.rotate(1,0,45)
 #	f.get_Gstar(vl,vu,theta_in_upper)
 
