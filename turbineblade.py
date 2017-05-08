@@ -184,8 +184,8 @@ class Blade():
         # print(x[0],y[0])
         # print(x[-1],y[-1])
         plt.plot(x, y)
-        plt.xlim(-2, 2)
-        plt.ylim(-2, 2)
+        plt.xlim(-3, 3)
+        plt.ylim(-3, 3)
         plt.gca().set_aspect('equal', adjustable='box')
         # plt.show()
 
@@ -205,15 +205,15 @@ class Blade():
         # print(x[-1],y[-1])
 
         plt.plot(x, y)
-        plt.xlim(-2, 2)
-        plt.ylim(-2, 2)
+        plt.xlim(-3, 3)
+        plt.ylim(-3, 3)
         plt.gca().set_aspect('equal', adjustable='box')
-        plt.show()
+        # plt.show()
 
     # defines upper convex arc coordinates
     # ve is the entry angle
     # vu is the value to define the upper convex radius
-    def upper_convex(self, vu, theta):
+    def upper_convex(self, vu,vend,theta):
 
         x, y = [], []
         Xstar, Ystar = [], []
@@ -221,7 +221,7 @@ class Blade():
         xtmp = 0
         ytmp = self.get_Ru(vu)
 
-        for num in range(0, self.ve*2):
+        for num in range(0, int(round(vend*2))):
             Xstar_b = xtmp
             Ystar_b = ytmp
             Rstar, Xstar_a, Ystar_a, myu_check = self.get_R(-vu, vu-num)
@@ -259,11 +259,11 @@ class Blade():
         R_y_min = np.cos(np.deg2rad(theta90)) * self.get_Ru(vu)
 
         plt.plot(x, y)
-        plt.plot(Xstar, Ystar)
-        plt.plot(R_x, R_y)
-        plt.plot(R_x_min, R_y_min)
-        plt.xlim(-2, 2)
-        plt.ylim(-2, 2)
+        # plt.plot(Xstar, Ystar)
+        # plt.plot(R_x, R_y)
+        # plt.plot(R_x_min, R_y_min)
+        plt.xlim(-3, 3)
+        plt.ylim(-3, 3)
         plt.gca().set_aspect('equal', adjustable='box')
         # plt.show()
 
@@ -316,10 +316,10 @@ class Blade():
         R_y = np.cos(np.deg2rad(theta90))
 
         plt.plot(x, y)
-        plt.plot(Xstar, Ystar)
-        plt.plot(R_x, R_y)
-        plt.xlim(-2, 2)
-        plt.ylim(-2, 2)
+        # plt.plot(Xstar, Ystar)
+        # plt.plot(R_x, R_y)
+        plt.xlim(-3, 3)
+        plt.ylim(-3, 3)
         plt.gca().set_aspect('equal', adjustable='box')
         # plt.show()
 
@@ -402,14 +402,11 @@ if __name__ == "__main__":
     mach_in = 2.5
     vout = 30
     vl = 0
-    vu = 45
+    vu = 59
 
-    theta_in = 30
-    theta_out = 30
-    theta_in_upper = 45
-    theta_in_lower = 45
-    theta_out_upper = 30
-    theta_out_lower = 30
+    total_turn_ang = 130
+    theta_in = 90 - total_turn_ang / 2
+    theta_out = 90 - total_turn_ang / 2
 
     print("Design Supersonic Turbine")
 
@@ -429,15 +426,21 @@ if __name__ == "__main__":
 
     Ualpha_in = 90 - theta_in - (vu - f.ve)
     Lalpha_in = 90 - theta_in - (f.ve - vl)
-    xlow, ylow = f.lower_concave(vl, theta_in_lower)
-    xup, yup = f.upper_convex(vu, theta_in_upper)
-    f.get_lower_arc(f.get_Ru(vl), theta_in_lower, theta_out_lower, vl, vout)
-    f.get_upper_arc(f.get_Ru(vu), theta_in_upper, theta_out_upper, vu, vout)
-    newy = f.straight_line(theta_in, xup, yup, xlow)
+    
+    print(Ualpha_in, Lalpha_in,Ualpha_in - theta_in)
+
+    xlow, ylow = f.lower_concave(vl, Lalpha_in)
+    xup, yup = f.upper_convex(vu,Ualpha_in - theta_in, Ualpha_in)
+
+    f.get_lower_arc(f.get_Ru(vl), theta_in, theta_out, vl, vout)
+    f.get_upper_arc(f.get_Ru(vu), theta_in, theta_out, vu, vout)
+
+    newy = f.straight_line(total_turn_ang/2, xup, yup, xlow)
     plt.plot([xlow, xup], [newy, yup])
     shift = -abs(ylow - newy)
-    f.lower_concave(Ualpha_in, theta_in_lower, shift)
-    f.get_lower_arc(f.get_Ru(vl), theta_in_lower, theta_out_lower, vl, vout, shift)
+
+    f.lower_concave(vl, Lalpha_in, shift)
+    f.get_lower_arc(f.get_Ru(vl), theta_in, theta_out, vl, vout, shift)
     plt.show()
 
     # f.draw_lines(-10, 20)
