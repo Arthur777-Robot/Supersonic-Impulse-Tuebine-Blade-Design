@@ -430,7 +430,7 @@ if __name__ == "__main__":
     print(Ualpha_in, Lalpha_in,Ualpha_in - theta_in)
 
     xlow, ylow = f.lower_concave(vl, Lalpha_in)
-    xup, yup = f.upper_convex(vu,Ualpha_in - theta_in, Ualpha_in)
+    xup, yup = f.upper_convex(vu,90 - Ualpha_in - theta_in, Ualpha_in)
 
     f.get_lower_arc(f.get_Ru(vl), theta_in, theta_out, vl, vout)
     f.get_upper_arc(f.get_Ru(vu), theta_in, theta_out, vu, vout)
