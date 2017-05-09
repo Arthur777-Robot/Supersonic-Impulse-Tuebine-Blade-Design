@@ -313,7 +313,9 @@ class Blade():
         xtmp = 0
         ytmp = self.get_Ru(self.vu)
         x, y = [], []
-        for num in range(0, int(round((self.alpha_upper_in + self.beta_in - 90)*2))):
+        print(90 - self.alpha_upper_in - self.beta_in)
+
+        for num in range(0, int(round(self.beta_in - self.alpha_upper_in)*2)):
             Xstar_b = xtmp
             Ystar_b = ytmp
             Rstar, Xstar_a, Ystar_a, myu_check = self.get_R(-self.vu, self.vu - num)
@@ -337,7 +339,7 @@ class Blade():
         xtmp = 0
         ytmp = self.get_Ru(self.vu)
         x, y = [], []
-        for num in range(0, int(round((- self.alpha_upper_out - self.beta_out - 90)*2))):
+        for num in range(0, int(round((-(self.beta_out - self.alpha_upper_out))*2))):
             Xstar_b = xtmp
             Ystar_b = ytmp
             Rstar, Xstar_a, Ystar_a, myu_check = self.get_R(-self.vu, self.vu - num)
