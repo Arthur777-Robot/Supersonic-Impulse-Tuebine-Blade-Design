@@ -26,6 +26,7 @@ from scipy.interpolate import interp1d
 from scipy import integrate
 from scipy import optimize
 import configparser
+import pandas as pd
 
 plt.close('all')
 
@@ -47,6 +48,7 @@ class Blade():
         self.name = setting.get("Config", "Name")
         self.is_save_fig = setting.getboolean("Config", "SaveFig?")
         self.is_save_excel = setting.getboolean("Config", "SaveExcel?")
+        self.num_output_points = setting.getint("Config", "number of output points")
 
         gamma = setting.getfloat("Turbine-Blade", "specific heat ratio")
         mach_in = setting.getfloat("Turbine-Blade", "inlet mach number")
@@ -466,8 +468,7 @@ class Blade():
         self.upper_curve_y = ucy
 
         # interpolate contour curves
-        num = 20
-        x = np.linspace(ucx.min(), ucx.max(), num)
+        x = np.linspace(ucx.min(), ucx.max(), self.num_output_points)
         lcy_func = interp1d(self.lower_curve_x, self.lower_curve_y)
         lcy_shift_func = interp1d(self.lower_curve_x_shift, self.lower_curve_y_shift)
         ucy_func = interp1d(self.upper_curve_x, self.upper_curve_y)
@@ -477,6 +478,11 @@ class Blade():
         self.lower_curve_y_shift_interp = lcy_shift_func(x)
         self.upper_curve_x_interp = x
         self.upper_curve_y_interp = ucy_func(x)
+
+        # make pandas DataFrame to save contour
+        tmp = [x, self.lower_curve_y_shift_interp,
+               self.upper_curve_y_interp, self.lower_curve_y_interp]
+        self.dfc = pd.DataFrame(tmp, index = ["x", "lower curve1", "upper curve", "lower curve2"])
 
         if(self.is_save_excel): self.save_contour()
 
@@ -519,7 +525,9 @@ class Blade():
 
     def save_contour(self):
         """ save contour in Excel file """
-        pass
+        writer = pd.ExcelWriter("result/turbine_contour_" + self.name + ".xlsx")
+        self.dfc.T.to_excel(writer, "contour")
+        writer.save()
 
     def change_setting_value(self, section, key, value):
         """ change value in setting file
