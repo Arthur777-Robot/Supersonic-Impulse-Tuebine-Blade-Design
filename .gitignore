@@ -1,5 +1,12 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+
 SupersonicTurbineDesign.idx
 SupersonicTurbineDesign.aux
 SupersonicTurbineDesign.log
 SupersonicTurbineDesign.synctex.gz
 SupersonicTurbineDesign.toc
+
+result/*.png

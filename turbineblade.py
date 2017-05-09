@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 '''
 The MIT License (MIT)
-Copyright (c) 2017 Seiji Arther Murakami
+Copyright (c) 2017 Seiji Arther Murakami, Takahiro Inagawa
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -17,12 +17,15 @@ This program was based on below papers
 5 - NASA TN D-4422, ANALYTICAL INVESTIGATION OF SUPERSONIC TURBOMACHINERY BLADING: II - Analysis of Impulse Turbine-Blade Sections
 '''
 
+import sys
+import os
 import math
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy import integrate
 from scipy import optimize
+import configparser
 
 plt.close('all')
 
@@ -30,18 +33,29 @@ plt.close('all')
 # Characteristic line function
 
 class Blade():
-    def __init__(self, gamma, mach_in, mach_out, beta_in, vo, vu, vl):
-        """ Supersonic Impulse turbine wing class
-        Args:
-            gamma (float) : specific heat ratio
-            mach_in (float) : inlet mach number
-            mach_out (float) : outlet mach number
-            beta_in (float) : flow angle outside blade passage [deg]
-            vo (float) : outlet Prandtle-Meyer angle [deg]
-            vu (float) : upper surface of blade Prandtle-Meyer angle [deg]
-            vl (float) : lower surface of blade Prandtle-Meyer angle [deg]
-        """
-        print('Initializing parameter...')
+    # def __init__(self, gamma, mach_in, mach_out, beta_in, vo, vu, vl):
+    def __init__(self, setting_file, reload = False):
+        if (reload):  # if reload, it doesn't read file
+            pass
+        else:
+            self.setting_file = setting_file
+            self.setting = configparser.ConfigParser()
+            self.setting.optionxform = str
+            self.setting.read(setting_file, encoding='utf8')
+        setting = self.setting
+
+        self.name = setting.get("Config", "Name")
+        self.is_save_fig = setting.getboolean("Config", "SaveFig?")
+        self.is_save_excel = setting.getboolean("Config", "SaveExcel?")
+
+        gamma = setting.getfloat("Turbine-Blade", "specific heat ratio")
+        mach_in = setting.getfloat("Turbine-Blade", "inlet mach number")
+        mach_out = setting.getfloat("Turbine-Blade", "outlet mach number")
+        beta_in = setting.getint("Turbine-Blade", "inlet flow angle[deg]")
+        vo = setting.getint("Turbine-Blade", "outlet Prandtle-Meyer angle[deg]")
+        vu = setting.getint("Turbine-Blade", "upper surface Prandtle-Meyer angle[deg]")
+        vl = setting.getint("Turbine-Blade", "lower surface Prandtle-Meyer angle[deg]")
+
         self.gamma = gamma
         self.mach_in = mach_in
         self.mach_out = mach_out
@@ -49,7 +63,8 @@ class Blade():
         self.vo = vo
         self.vu = vu
         self.vl = vl
-        self.Rstar_min = np.sqrt((self.gamma - 1)/(self.gamma + 1))
+
+        self.Rstar_min = np.sqrt((gamma - 1)/(gamma + 1))
         self.const = self.chara_line(1)
         vi = int(round(self.get_Pr(mach_in)))
         self.vi = vi
@@ -220,6 +235,62 @@ class Blade():
     def get_Ru(self, vu):
         return self.get_R(-vu, vu)[0]
 
+    def get_Q(self, Rlstar, Rustar):
+
+        Mlstar = 1 / Rlstar
+        Mustar = 1 / Rustar
+
+        Mach = lambda Mach: (((self.gamma+1) / 2 - (self.gamma-1) * Mach**2 / 2)**(1 / (self.gamma - 1)))/Mach
+
+        Q1 = Mlstar * Mustar / (Mustar - Mlstar)
+        Q2 = integrate.quad(Mach, Mlstar, Mustar)
+
+        Q = Q1 * Q2[0]
+
+        return Q
+
+    def get_Gstar(self, vl, vu, theta_in):
+
+        Ae = 0
+        Rlstar = self.get_Ru(vl)
+        Rustar = self.get_Ru(vu)
+        Q = self.get_Q(Rlstar, Rustar)
+
+        Astar = (Rlstar - Rustar) / Q
+
+        print(Astar)
+
+        # Gstar = Ae/Astar * Q * (Rl - Ru) / math.cos(theta_in)
+        print("daradara")
+
+    def rotate(self, x, y, angle):
+
+        theta = np.deg2rad(angle)
+        a = np.array(((np.cos(theta), -np.sin(theta)),
+                      (np.sin(theta), np.cos(theta))))
+        b = np.array((x, y))
+        return np.dot(a, b)
+
+    def get_Pr(self, Mach):
+
+        Mstar = (((self.gamma + 1) / 2 * Mach**2) / (1 + (self.gamma - 1) / 2 * Mach**2))**0.5
+        tmp1 = math.pi/4 * (math.sqrt((self.gamma + 1)/(self.gamma - 1)) - 1)
+        tmp2 = self.chara_line(1/Mstar)
+
+        Pr = math.degrees(tmp1 + tmp2)
+
+        return Pr
+
+    def get_mach_from_prandtle_meyer(self, v1):
+        mach0 = 1.0
+
+        def func(mach, v1):
+            return self.get_Pr(mach) - v1
+
+        sol = optimize.root(func, mach0, args=(v1))
+        mach = sol.x[0]
+        return mach
+
     def make_circular_arcs(self):
         """ make concentric circular arcs """
         alpha_l = np.arange(90 + self.alpha_lower_in, 90 + self.alpha_lower_out, - 0.1)
@@ -353,61 +424,15 @@ class Blade():
         self.upper_straight_out_x = [targetx, x]
         self.upper_straight_out_y = [targety, y]
 
-    def get_Q(self, Rlstar, Rustar):
-
-        Mlstar = 1 / Rlstar
-        Mustar = 1 / Rustar
-
-        Mach = lambda Mach: (((self.gamma+1) / 2 - (self.gamma-1) * Mach**2 / 2)**(1 / (self.gamma - 1)))/Mach
-
-        Q1 = Mlstar * Mustar / (Mustar - Mlstar)
-        Q2 = integrate.quad(Mach, Mlstar, Mustar)
-
-        Q = Q1 * Q2[0]
-
-        return Q
-
-    def get_Gstar(self, vl, vu, theta_in):
-
-        Ae = 0
-        Rlstar = self.get_Ru(vl)
-        Rustar = self.get_Ru(vu)
-        Q = self.get_Q(Rlstar, Rustar)
-
-        Astar = (Rlstar - Rustar) / Q
-
-        print(Astar)
-
-        # Gstar = Ae/Astar * Q * (Rl - Ru) / math.cos(theta_in)
-        print("daradara")
-
-    def rotate(self, x, y, angle):
-
-        theta = np.deg2rad(angle)
-        a = np.array(((np.cos(theta), -np.sin(theta)),
-                      (np.sin(theta), np.cos(theta))))
-        b = np.array((x, y))
-        return np.dot(a, b)
-
-    def get_Pr(self, Mach):
-
-        Mstar = (((self.gamma + 1) / 2 * Mach**2) / (1 + (self.gamma - 1) / 2 * Mach**2))**0.5
-        tmp1 = math.pi/4 * (math.sqrt((self.gamma + 1)/(self.gamma - 1)) - 1)
-        tmp2 = self.chara_line(1/Mstar)
-
-        Pr = math.degrees(tmp1 + tmp2)
-
-        return Pr
-
-    def get_mach_from_prandtle_meyer(self, v1):
-        mach0 = 1.0
-
-        def func(mach, v1):
-            return self.get_Pr(mach) - v1
-
-        sol = optimize.root(func, mach0, args=(v1))
-        mach = sol.x[0]
-        return mach
+    def calc(self):
+        """ wrapper of making lines and curves """
+        self.make_circular_arcs()
+        self.make_lower_concave()
+        self.make_upper_convex()
+        self.make_upper_straight_line()
+        self.make_circular_arcs()
+        self.make_lower_concave()
+        if(self.is_save_excel): self.save_contour()
 
     def plot_contour(self):
         """ Plot contour """
@@ -425,32 +450,38 @@ class Blade():
         plt.plot(self.upper_straight_out_x, self.upper_straight_out_y)
         # plt.plot([],[], color='k', label="test")
         plt.gca().set_aspect('equal', adjustable='box')
-        plt.title("contour")
+        plt.title("turbine wing contour " + self.name)
         # plt.legend(loc="best")
         # plt.grid()
+        if(self.is_save_fig):plt.savefig("result/turbine_contour_" + self.name + ".png")
         plt.show()
 
+    def save_contour(self):
+        """ save contour in Excel file """
+        pass
+
+    def change_setting_value(self, section, key, value):
+        """ change value in setting file
+        Args:
+            section (str) : section of setting_file that is in []
+            key (str) : key of setting_file
+            value (str or float) : value to change
+        """
+        self.setting.set(section, key, str(value))
+        self.__init__(self.setting_file, reload=True)
+
 if __name__ == "__main__":
-
-    gamma = 1.4
-    mach_in = 1.5
-    mach_out = 1.5
-    vout = 12
-    vl = 0
-    vu = 26
-
-    beta_in = 65
+    if len(sys.argv) == 1:
+        setting_file = 'setting.ini'
+    else:
+        setting_file = sys.argv[1]
+        assert os.path.exists(setting_file), "no file exist"
+    plt.close("all")
 
     print("Design Supersonic Turbine")
 
-    f = Blade(gamma, mach_in, mach_out, beta_in, vout, vu, vl)
-
-    f.make_circular_arcs()
-    f.make_lower_concave()
-    f.make_upper_convex()
-    f.make_upper_straight_line()
-    f.make_circular_arcs()
-    f.make_lower_concave()
-
+    f = Blade(setting_file)
+    f.calc()
     f.plot_contour()
+
     print("finish")
