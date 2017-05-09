@@ -30,13 +30,65 @@ plt.close('all')
 # Characteristic line function
 
 class Blade():
-    def __init__(self, gamma, mach):
+    def __init__(self, gamma, mach_in, mach_out, beta_in, vo, vu, vl):
+        """ Supersonic Impulse turbine wing class
+        Args:
+            gamma (float) : specific heat ratio
+            mach_in (float) : inlet mach number
+            mach_out (float) : outlet mach number
+            beta_in (float) : flow angle outside blade passage [deg]
+            vo (float) : outlet Prandtle-Meyer angle [deg]
+            vu (float) : upper surface of blade Prandtle-Meyer angle [deg]
+            vl (float) : lower surface of blade Prandtle-Meyer angle [deg]
+        """
         print('Initializing parameter...')
         self.gamma = gamma
-        self.Rstar_min = math.sqrt((self.gamma - 1)/(self.gamma + 1))
+        self.mach_in = mach_in
+        self.mach_out = mach_out
+        self.beta_in = beta_in
+        self.vo = vo
+        self.vu = vu
+        self.vl = vl
+        self.Rstar_min = np.sqrt((self.gamma - 1)/(self.gamma + 1))
         self.const = self.chara_line(1)
-        self.ve = int(round(self.get_Pr(mach)))
-        print("Inlet Mach = ", mach, "Inlet Prandtle meyer angle = ", self.ve)
+        vi = int(round(self.get_Pr(mach_in)))
+        self.vi = vi
+        b1 = 1 + (gamma - 1) / 2 * (mach_out ** 2)
+        b2 = 1 + (gamma - 1) / 2 * (mach_in ** 2)
+        b3 = (gamma + 1) / (2 * (gamma - 1))
+        beta_out_rad = - np.arccos(mach_in / mach_out * ((b1 / b2) ** b3) * np.cos(np.deg2rad(beta_in)))
+        beta_out = np.rad2deg(beta_out_rad)
+        self.beta_out = beta_out
+        self.total_turn_ang = self.beta_in - self.beta_out
+        self.alpha_lower_in = beta_in - (vi - vl)
+        self.alpha_lower_out = beta_out + (vo - vl)
+        self.alpha_upper_in = beta_in - (vu - vi)
+        self.alpha_upper_out = beta_out + (vu - vo)
+        self.shift = 0
+
+        self.mach_upper = self.get_mach_from_prandtle_meyer(self.vu)
+        self.mach_lower = self.get_mach_from_prandtle_meyer(self.vl)
+
+        # Prandtle-Meyer angle limitation
+        self.vlmin = 0
+        self.vlmax = self.vi
+        self.vumin = self.vi
+        self.vumax = np.rad2deg((math.pi/2) * (np.sqrt((self.gamma + 1)/(self.gamma - 1)) - 1))
+
+        self.Rstar_l = self.get_Ru(self.vl)
+        self.Rstar_u = self.get_Ru(self.vu)
+
+        print("Inlet Mach num = %.1f, Outlet Mach num = %.1f" % (mach_in, mach_out))
+        print("Upeer Mach num = %.1f, Lower Mach num = %.1f" % (self.mach_upper, self.mach_lower))
+        print("Inlet Prandtle-Meyer angle = %.1f [deg], Outlet Prandtle-Meyer angle = %.1f [deg]" % (self.vi, self.vo))
+        print("Upper Prandtle-Meyer angle = %.1f [deg], Lower Prandtle-Meyer angle = %.1f [deg]" % (self.vu, self.vl))
+        print("alpha lower in = %.1f [deg], alpha lower out = %.1f [deg]" % (self.alpha_lower_in, self.alpha_lower_out))
+        print("alpha upper in = %.1f [deg], alpha upper out = %.1f [deg]" % (self.alpha_upper_in, self.alpha_upper_out))
+        print("beta in = %.1f [deg], beta out = %.1f [deg]" % (self.beta_in, self.beta_out))
+        print("total turn angle = %.1f [deg]" % (self.total_turn_ang))
+        print("== Prandtle-Meyer angle limitation ==")
+        print("upper max = %.2f, upper min = %.2f, lower max = %.2f, lower min = %.2f" % (self.vumax, self.vumin, self.vlmax, self.vlmin))
+        print("R* lower = %.2f, R* upper = %.2f" % (self.Rstar_l, self.Rstar_u))
 
     # if Rstar value is less than self.Rstar_min, if will give math error
     def chara_line(self, Rstar):
@@ -168,162 +220,138 @@ class Blade():
     def get_Ru(self, vu):
         return self.get_R(-vu, vu)[0]
 
-    # In the papaer, theta are defines around 90-120deg
-    def get_upper_arc(self, Rstar, theta_in, theta_out, vu, vout):
+    def make_circular_arcs(self):
+        """ make concentric circular arcs """
+        alpha_l = np.arange(90 + self.alpha_lower_in, 90 + self.alpha_lower_out, - 0.1)
+        self.lower_arc_x = self.Rstar_l * np.cos(np.deg2rad(alpha_l))
+        self.lower_arc_y = self.Rstar_l * np.sin(np.deg2rad(alpha_l))
+        alpha_u = np.arange(90 + self.alpha_upper_in, 90 + self.alpha_upper_out, - 0.1)
+        self.upper_arc_x = self.Rstar_u * np.cos(np.deg2rad(alpha_u))
+        self.upper_arc_y = self.Rstar_u * np.sin(np.deg2rad(alpha_u))
 
-        alpha_in = 90 - theta_in - (vu - self.ve)
-        alpha_out = 90 - theta_out - (vu - vout)
+        self.lower_arc_x_shift = self.lower_arc_x
+        self.lower_arc_y_shift = self.shift + self.lower_arc_y
 
-        print("Upper arc alpha_in = %.1f deg, alpha_out = %.1f deg" % (alpha_in, alpha_out))
-
-        theta = np.arange(-alpha_in, alpha_out, 0.1)
-        x = Rstar * np.sin(np.deg2rad(theta))
-        y = Rstar * np.cos(np.deg2rad(theta))
-
-        # print(beta_in,beta_out)
-        # print(x[0],y[0])
-        # print(x[-1],y[-1])
-        plt.plot(x, y)
-        plt.xlim(-3, 3)
-        plt.ylim(-3, 3)
-        plt.gca().set_aspect('equal', adjustable='box')
-        # plt.show()
-
-    def get_lower_arc(self, Rstar, theta_in, theta_out, vl, vout, shift=0):
-
-        alpha_in = 90 - theta_in - (self.ve - vl)
-        alpha_out = 90 - theta_out - (vout - vl)
-
-        print("Lower arc alpha_in = %.1f deg, alpha_out = %.1f deg" % (alpha_in, alpha_out))
-
-        theta = np.arange(-alpha_in, alpha_out, 0.1)
-        x = Rstar * np.sin(np.deg2rad(theta))
-        y = shift + Rstar * np.cos(np.deg2rad(theta))
-
-        # print(alpha_in,alpha_out)
-        # print(x[0],y[0])
-        # print(x[-1],y[-1])
-
-        plt.plot(x, y)
-        plt.xlim(-3, 3)
-        plt.ylim(-3, 3)
-        plt.gca().set_aspect('equal', adjustable='box')
-        # plt.show()
-
-    # defines upper convex arc coordinates
-    # ve is the entry angle
-    # vu is the value to define the upper convex radius
-    def upper_convex(self, vu,vend,theta):
-
-        x, y = [], []
-        Xstar, Ystar = [], []
-
+    def make_upper_convex(self):
+        """ make upper convex curve """
         xtmp = 0
-        ytmp = self.get_Ru(vu)
-
-        for num in range(0, int(round(vend*2))):
+        ytmp = self.get_Ru(self.vu)
+        x, y = [], []
+        for num in range(0, int(round((self.alpha_upper_in + self.beta_in - 90)*2))):
             Xstar_b = xtmp
             Ystar_b = ytmp
-            Rstar, Xstar_a, Ystar_a, myu_check = self.get_R(-vu, vu-num)
+            Rstar, Xstar_a, Ystar_a, myu_check = self.get_R(-self.vu, self.vu - num)
             myu = self.get_myu(self.get_mach(self.get_Mstar(Rstar)))
-            a1 = math.tan(myu+math.radians(num/2.0))
-            # a1 = math.tan(myu_check)
+            a1 = math.tan(myu + math.radians(num/2.0))
             b1 = Ystar_a - a1 * Xstar_a
             a2 = math.tan(math.radians(num/2.0))
-            # a2 = math.tan(myu_check-myu)
             b2 = Ystar_b - a2 * Xstar_b
-
-            # print(Rstar,Xstar_a,Ystar_a,math.degrees(myu_check),math.degrees(myu))
-
             xtmp = ((b2 - b1) / (a1 - a2))
             ytmp = xtmp * a2 + b2
-
-            # print(num/2,Rstar,math.degrees(myu_check),math.degrees(myu),xtmp,ytmp)
-
-            rotx, roty = self.rotate(xtmp, ytmp, theta)
+            rotx, roty = self.rotate(xtmp, ytmp, self.alpha_upper_in)
 
             x += [(rotx)]
             y += [(roty)]
-            Xstar += [(Xstar_a)]
-            Ystar += [(Ystar_a)]
 
-            xcomp = np.arange(-1, 0, 0.001)
-            ycomp = a1*xcomp + b1
+        self.upper_convex_in_x = x
+        self.upper_convex_in_y = y
+        self.upper_convex_in_x_end = x[-1]
+        self.upper_convex_in_y_end = y[-1]
 
-            # plt.plot(xcomp,ycomp)
-
-        theta90 = np.arange(0, 90)
-        R_x = - np.sin(np.deg2rad(theta90))
-        R_y = np.cos(np.deg2rad(theta90))
-        R_x_min = - np.sin(np.deg2rad(theta90)) * self.get_Ru(vu)
-        R_y_min = np.cos(np.deg2rad(theta90)) * self.get_Ru(vu)
-
-        plt.plot(x, y)
-        # plt.plot(Xstar, Ystar)
-        # plt.plot(R_x, R_y)
-        # plt.plot(R_x_min, R_y_min)
-        plt.xlim(-3, 3)
-        plt.ylim(-3, 3)
-        plt.gca().set_aspect('equal', adjustable='box')
-        # plt.show()
-
-        return x[-1], y[-1]
-
-    # defines lower concave arc coordinates
-    # Precaution. there are still calculation uncertainties.
-    def lower_concave(self, v1, theta, shift=0):
-
-        xinit = -math.sin(math.radians(v1))
-        yinit = math.cos(math.radians(v1))
-
-        xtmp = xinit
-        ytmp = yinit
-
+        xtmp = 0
+        ytmp = self.get_Ru(self.vu)
         x, y = [], []
-        Xstar, Ystar = [], []
-
-        for num in range(v1, self.ve*2):
-
+        for num in range(0, int(round((- self.alpha_upper_out - self.beta_out - 90)*2))):
             Xstar_b = xtmp
             Ystar_b = ytmp
-
-            Rstar, Xstar_a, Ystar_a, myu_check = self.get_R(-num, v1)
+            Rstar, Xstar_a, Ystar_a, myu_check = self.get_R(-self.vu, self.vu - num)
             myu = self.get_myu(self.get_mach(self.get_Mstar(Rstar)))
-            a1 = math.tan(-myu+math.radians(num/2.0))
+            a1 = math.tan(myu + math.radians(num/2.0))
             b1 = Ystar_a - a1 * Xstar_a
             a2 = math.tan(math.radians(num/2.0))
             b2 = Ystar_b - a2 * Xstar_b
-
             xtmp = ((b2 - b1) / (a1 - a2))
             ytmp = xtmp * a2 + b2
-
-            # print(num/2.0,Rstar,math.degrees(myu_check),math.degrees(myu),xtmp,ytmp,Xstar_a,Ystar_a)
-
-            rotx, roty = self.rotate(xtmp, ytmp, theta)
+            rotx, roty = self.rotate(-xtmp, ytmp, self.alpha_upper_out)
 
             x += [(rotx)]
-            y += [(roty + shift)]
-            Xstar += [(Xstar_a)]
-            Ystar += [(Ystar_a)]
+            y += [(roty)]
 
-            xcomp = np.arange(-1, 0, 0.001)
-            ycomp = a1*xcomp + b1
+        self.upper_convex_out_x = x
+        self.upper_convex_out_y = y
+        self.upper_convex_out_x_end = x[-1]
+        self.upper_convex_out_y_end = y[-1]
 
-            # plt.plot(xcomp,ycomp)
+    def make_lower_concave(self):
+        """ make lower concave curve """
+        xtmp = - np.sin(np.deg2rad(self.vl))
+        ytmp = np.cos(np.deg2rad(self.vl))
+        x, y = [], []
+        for num in range(self.vl, self.vi*2):
+            Xstar_b = xtmp
+            Ystar_b = ytmp
+            Rstar, Xstar_a, Ystar_a, myu_check = self.get_R(-num, self.vl)
+            myu = self.get_myu(self.get_mach(self.get_Mstar(Rstar)))
+            a1 = np.tan(- myu + np.deg2rad(num / 2.0))
+            b1 = Ystar_a - a1 * Xstar_a
+            a2 = np.tan(np.deg2rad(num / 2.0))
+            b2 = Ystar_b - a2 * Xstar_b
+            xtmp = ((b2 - b1) / (a1 - a2))
+            ytmp = xtmp * a2 + b2
+            rotx, roty = self.rotate(xtmp, ytmp, self.alpha_lower_in)
 
-        theta90 = np.arange(0, 90)
-        R_x = - np.sin(np.deg2rad(theta90))
-        R_y = np.cos(np.deg2rad(theta90))
+            x += [(rotx)]
+            y += [(roty)]
 
-        plt.plot(x, y)
-        # plt.plot(Xstar, Ystar)
-        # plt.plot(R_x, R_y)
-        plt.xlim(-3, 3)
-        plt.ylim(-3, 3)
-        plt.gca().set_aspect('equal', adjustable='box')
-        # plt.show()
+        self.lower_concave_in_x = x
+        self.lower_concave_in_y = y
+        self.lower_concave_in_x_end = x[-1]
+        self.lower_concave_in_y_end = y[-1]
+        self.lower_concave_in_x_shift = x
+        self.lower_concave_in_y_shift = np.array(y) + self.shift
 
-        return x[-1], y[-1]
+        xtmp = - np.sin(np.deg2rad(self.vl))
+        ytmp = np.cos(np.deg2rad(self.vl))
+        x, y = [], []
+        for num in range(self.vl, self.vo*2):
+            Xstar_b = xtmp
+            Ystar_b = ytmp
+            Rstar, Xstar_a, Ystar_a, myu_check = self.get_R(-num, self.vl)
+            myu = self.get_myu(self.get_mach(self.get_Mstar(Rstar)))
+            a1 = np.tan(- myu + np.deg2rad(num / 2.0))
+            b1 = Ystar_a - a1 * Xstar_a
+            a2 = np.tan(np.deg2rad(num / 2.0))
+            b2 = Ystar_b - a2 * Xstar_b
+            xtmp = ((b2 - b1) / (a1 - a2))
+            ytmp = xtmp * a2 + b2
+            rotx, roty = self.rotate(-xtmp, ytmp, self.alpha_lower_out)
+
+            x += [(rotx)]
+            y += [(roty)]
+
+        self.lower_concave_out_x = x
+        self.lower_concave_out_y = y
+        self.lower_concave_out_x_end = x[-1]
+        self.lower_concave_out_y_end = y[-1]
+        self.lower_concave_out_x_shift = x
+        self.lower_concave_out_y_shift = np.array(y) + self.shift
+
+    def make_upper_straight_line(self):
+        """ make upper straight line """
+        targetx = self.lower_concave_in_x_end
+        x = self.upper_convex_in_x_end
+        y = self.upper_convex_in_y_end
+        targety = np.tan(np.deg2rad(self.beta_in)) * targetx + y - np.tan(np.deg2rad(self.beta_in)) * x
+        self.upper_straight_in_x = [targetx, x]
+        self.upper_straight_in_y = [targety, y]
+        self.shift = - abs(self.lower_concave_in_y_end - targety)
+
+        targetx = self.lower_concave_out_x_end
+        x = self.upper_convex_out_x_end
+        y = self.upper_convex_out_y_end
+        targety = np.tan(np.deg2rad(self.beta_out)) * targetx + y - np.tan(np.deg2rad(self.beta_out)) * x
+        self.upper_straight_out_x = [targetx, x]
+        self.upper_straight_out_y = [targety, y]
 
     def get_Q(self, Rlstar, Rustar):
 
@@ -361,12 +389,6 @@ class Blade():
         b = np.array((x, y))
         return np.dot(a, b)
 
-    def straight_line(self, theta, x, y, targetx):
-
-        targety = np.tan(np.deg2rad(theta)) * targetx + y - np.tan(np.deg2rad(theta)) * x
-
-        return targety
-
     def get_Pr(self, Mach):
 
         Mstar = (((self.gamma + 1) / 2 * Mach**2) / (1 + (self.gamma - 1) / 2 * Mach**2))**0.5
@@ -387,64 +409,48 @@ class Blade():
         mach = sol.x[0]
         return mach
 
-    def valuables_limit(self, vl, vu):
-
-        vlmin = 0
-        vlmax = self.ve
-        vumin = self.ve
-        vumax = math.degrees((math.pi/2) * (math.sqrt((self.gamma + 1)/(self.gamma - 1)) - 1))
-
-        print("upper max = %.2f, upper min = %.2f, lower max = %.2f, lower min = %.2f" % (vumax, vumin, vlmax, vlmin))
+    def plot_contour(self):
+        """ Plot contour """
+        plt.figure()
+        plt.plot(self.lower_arc_x, self.lower_arc_y)
+        plt.plot(self.upper_arc_x, self.upper_arc_y)
+        plt.plot(self.lower_arc_x_shift, self.lower_arc_y_shift)
+        plt.plot(self.lower_concave_in_x, self.lower_concave_in_y)
+        plt.plot(self.lower_concave_in_x_shift, self.lower_concave_in_y_shift)
+        plt.plot(self.lower_concave_out_x, self.lower_concave_out_y)
+        plt.plot(self.lower_concave_out_x_shift, self.lower_concave_out_y_shift)
+        plt.plot(self.upper_convex_in_x, self.upper_convex_in_y)
+        plt.plot(self.upper_convex_out_x, self.upper_convex_out_y)
+        plt.plot(self.upper_straight_in_x, self.upper_straight_in_y)
+        plt.plot(self.upper_straight_out_x, self.upper_straight_out_y)
+        # plt.plot([],[], color='k', label="test")
+        plt.gca().set_aspect('equal', adjustable='box')
+        plt.title("contour")
+        # plt.legend(loc="best")
+        # plt.grid()
+        plt.show()
 
 if __name__ == "__main__":
 
     gamma = 1.4
-    mach_in = 2.5
-    vout = 30
+    mach_in = 1.5
+    mach_out = 1.5
+    vout = 12
     vl = 0
-    vu = 59
+    vu = 26
 
-    total_turn_ang = 130
-    theta_in = 90 - total_turn_ang / 2
-    theta_out = 90 - total_turn_ang / 2
+    beta_in = 65
 
     print("Design Supersonic Turbine")
 
-    f = Blade(gamma, mach_in)
+    f = Blade(gamma, mach_in, mach_out, beta_in, vout, vu, vl)
 
-    print("upper mach number = %.3f" % (f.get_mach_from_prandtle_meyer(vu)), "vu = ", vu)
-    print("lower mach number = %.3f" % (f.get_mach_from_prandtle_meyer(vl)), "vl = ", vl)
+    f.make_circular_arcs()
+    f.make_lower_concave()
+    f.make_upper_convex()
+    f.make_upper_straight_line()
+    f.make_circular_arcs()
+    f.make_lower_concave()
 
-    f.valuables_limit(vl, vu)
-
-    # f.get_upper_arc(f.get_Ru(vu),theta_in_upper,theta_out_upper,vu,vout)
-    # f.get_lower_arc(f.get_Ru(vl),theta_in_lower,theta_out_lower,vl,vout)
-    # plt.show()
-    #
-    # a = f.rotate(1,0,45)
-    # f.get_Gstar(vl,vu,theta_in_upper)
-
-    Ualpha_in = 90 - theta_in - (vu - f.ve)
-    Lalpha_in = 90 - theta_in - (f.ve - vl)
-    
-    print(Ualpha_in, Lalpha_in,Ualpha_in - theta_in)
-
-    xlow, ylow = f.lower_concave(vl, Lalpha_in)
-    xup, yup = f.upper_convex(vu,Ualpha_in - theta_in, Ualpha_in)
-
-    f.get_lower_arc(f.get_Ru(vl), theta_in, theta_out, vl, vout)
-    f.get_upper_arc(f.get_Ru(vu), theta_in, theta_out, vu, vout)
-
-    newy = f.straight_line(total_turn_ang/2, xup, yup, xlow)
-    plt.plot([xlow, xup], [newy, yup])
-    shift = -abs(ylow - newy)
-
-    f.lower_concave(vl, Lalpha_in, shift)
-    f.get_lower_arc(f.get_Ru(vl), theta_in, theta_out, vl, vout, shift)
-    plt.show()
-
-    # f.draw_lines(-10, 20)
-    # f.lower_concave(0, 30)
-    # f.upper_convex(40, 35)
-    # f.plot_chara(360, 5)
+    f.plot_contour()
     print("finish")
