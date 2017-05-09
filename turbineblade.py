@@ -56,6 +56,9 @@ class Blade():
         vu = setting.getint("Turbine-Blade", "upper surface Prandtle-Meyer angle[deg]")
         vl = setting.getint("Turbine-Blade", "lower surface Prandtle-Meyer angle[deg]")
 
+        # error mode
+        assert mach_in > 1.0, "inlet mach number must be more than 1.0"
+
         self.gamma = gamma
         self.mach_in = mach_in
         self.mach_out = mach_out
@@ -432,6 +435,49 @@ class Blade():
         self.make_upper_straight_line()
         self.make_circular_arcs()
         self.make_lower_concave()
+
+        # make attributes of curves
+        lcx = np.zeros(0)
+        lcy = np.zeros(0)
+        lcx = np.append(lcx, np.array(self.lower_concave_in_x)[::-1])
+        lcx = np.append(lcx, self.lower_arc_x)
+        lcx = np.append(lcx, np.array(self.lower_concave_out_x))
+        lcy = np.append(lcy, np.array(self.lower_concave_in_y)[::-1])
+        lcy = np.append(lcy, self.lower_arc_y)
+        lcy = np.append(lcy, np.array(self.lower_concave_out_y))
+        self.lower_curve_x = lcx
+        self.lower_curve_y = lcy
+        self.lower_curve_x_shift = lcx
+        self.lower_curve_y_shift = lcy + self.shift
+
+        ucx = np.zeros(0)
+        ucy = np.zeros(0)
+        ucx = np.append(ucx, np.array(self.upper_straight_in_x))
+        ucx = np.append(ucx, np.array(self.upper_convex_in_x)[::-1])
+        ucx = np.append(ucx, self.upper_arc_x)
+        ucx = np.append(ucx, np.array(self.upper_convex_out_x))
+        ucx = np.append(ucx, np.array(self.upper_straight_out_x))
+        ucy = np.append(ucy, np.array(self.upper_straight_in_y))
+        ucy = np.append(ucy, np.array(self.upper_convex_in_y)[::-1])
+        ucy = np.append(ucy, self.upper_arc_y)
+        ucy = np.append(ucy, np.array(self.upper_convex_out_y))
+        ucy = np.append(ucy, np.array(self.upper_straight_out_y))
+        self.upper_curve_x = ucx
+        self.upper_curve_y = ucy
+
+        # interpolate contour curves
+        num = 20
+        x = np.linspace(ucx.min(), ucx.max(), num)
+        lcy_func = interp1d(self.lower_curve_x, self.lower_curve_y)
+        lcy_shift_func = interp1d(self.lower_curve_x_shift, self.lower_curve_y_shift)
+        ucy_func = interp1d(self.upper_curve_x, self.upper_curve_y)
+        self.lower_curve_x_interp = x
+        self.lower_curve_y_interp = lcy_func(x)
+        self.lower_curve_x_shift_interp = x
+        self.lower_curve_y_shift_interp = lcy_shift_func(x)
+        self.upper_curve_x_interp = x
+        self.upper_curve_y_interp = ucy_func(x)
+
         if(self.is_save_excel): self.save_contour()
 
     def plot_contour(self):
@@ -448,13 +494,28 @@ class Blade():
         plt.plot(self.upper_convex_out_x, self.upper_convex_out_y)
         plt.plot(self.upper_straight_in_x, self.upper_straight_in_y)
         plt.plot(self.upper_straight_out_x, self.upper_straight_out_y)
-        # plt.plot([],[], color='k', label="test")
+        # plt.plot([],[], color='k', label="hoge")
         plt.gca().set_aspect('equal', adjustable='box')
-        plt.title("turbine wing contour " + self.name)
+        plt.title("turbine wing contour : " + self.name)
         # plt.legend(loc="best")
         # plt.grid()
         if(self.is_save_fig):plt.savefig("result/turbine_contour_" + self.name + ".png")
         plt.show()
+
+    def plot_contour_simple(self, color="k"):
+        """ Plot contour that all lines are mono color """
+        plt.figure()
+        plt.plot(self.lower_curve_x, self.lower_curve_y, color=color)
+        plt.plot(self.lower_curve_x_shift, self.lower_curve_y_shift, color=color)
+        plt.plot(self.upper_curve_x, self.upper_curve_y, color=color)
+        # plt.plot([],[], color='k', label="hoge")
+        plt.gca().set_aspect('equal', adjustable='box')
+        plt.title("turbine wing contour : " + self.name)
+        # plt.legend(loc="best")
+        # plt.grid()
+        if(self.is_save_fig):plt.savefig("result/turbine_contour_simple" + self.name + ".png")
+        plt.show()
+
 
     def save_contour(self):
         """ save contour in Excel file """
@@ -483,5 +544,6 @@ if __name__ == "__main__":
     f = Blade(setting_file)
     f.calc()
     f.plot_contour()
+    f.plot_contour_simple()
 
     print("finish")
